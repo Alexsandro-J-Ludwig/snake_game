@@ -1,7 +1,7 @@
-mod keyboard_controll;
-pub use crate::keyboard_controll::Keyboard::keyboard;
+mod keyboard;
+use crate::keyboard::{Keyboard::keyboard, Keyboard::Moves};
 
-use std::{io::{Write, stdout}, os::windows::thread, thread::{sleep, spawn}, time::Duration};
+use std::{io::{Write, stdout}, thread::sleep, time::Duration};
 use rand::Rng;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -13,52 +13,73 @@ enum Cell {
 
 fn main() {
     let mut grid: [[Cell; 31]; 31] = [[Cell::Empty; 31]; 31];
-    let mut snake:  Vec<&str> = vec!["O", "o", "o"];
+    let mut snake:  Vec<(i32, i32)> = vec![(14, 14), (14, 15), (14, 16)];
     let mut x: usize = rand::rng().random_range(0..30);
-    //let mut y: usize = rand:: rng().random_range(0..30);
-    // let mut pos_x = 0;
-    // let mut pos_y = 0;
-    
-    let mut i: usize = 0;
+    let mut y: usize = rand:: rng().random_range(0..30);
 
-    // let pos_x = spawn(|| {
-    //     let input = keyboard();
+    let mut pos_x: isize = 14;
+    let mut pos_y: isize = 14;
+    let mut px = 0;
+    let mut py = 0;
 
-    //     match input {
-    //         "UP" => {pos_x = 0; pos_y = -1},
-    //         "DOWN" => {pos_x = 0; pos_y = 1},
-    //         "LEFT" => {pos_x = -1; pos_y = 0},
-    //         "DOWN" => {pos_x = 1; pos_y = 0},
-    //     }
-    // });
+    let mut point = 0;
 
     loop {
-        for s in 0..snake.len() {
-            grid[i+s][3] = Cell::Snake;
+        for row in &mut grid {
+            for cell in row.iter_mut() {
+                *cell = Cell::Empty;
+            }
+        }
+        for &(x, y) in &snake {
+            if x >= 0 && y >= 0 && x < 31 && y < 31 {
+                grid[x as usize][y as usize] = Cell::Snake;
+            }
         }
 
-        if grid[x][3] == Cell::Snake {
-            snake.push("o");
+        let position:Moves = keyboard();
+
+        match position {
+            Moves::Up => {px = -1; py = 0},
+            Moves::Down => {px = 1; py = 0},
+            Moves::Left => {px = 0; py = -1},
+            Moves::Right => {px = 0; py = 1},
+            Moves::None => {}
+        }
+
+        let new_head = (snake[0].0 + px, snake[0].1 + py);
+        snake.insert(0, new_head);
+
+        snake.pop();
+
+        if grid[x][y] == Cell::Snake {
+            snake.push(*snake.last().unwrap());
             x = rand::rng().random_range(0..30);
-            //y = rand::rng().random_range(0..30);
+            y = rand::rng().random_range(0..30);
+            point += 1;
         }
 
-        grid[x][3] = Cell::Fruit;
+        grid[x][y] = Cell::Fruit;
 
-        print_grid(grid);
+        print_grid(grid, point);
 
-        if grid[30][3] == Cell::Snake {
+        if pos_x < 0 || pos_y < 0 || pos_x >= 31 || pos_y >= 31 {
+            println!("Game Over");
             break;
         }
 
-        grid[i][3] = Cell::Empty;
-        i += 1;
+        if grid[(snake[0].0 + 1) as usize][(snake[0].1) as usize] == Cell::Snake {
+            println!("Game Over");
+            break;
+        }
 
-        sleep(Duration::from_millis(500));
+        pos_x += px as isize;
+        pos_y += py as isize;
+
+        sleep(Duration::from_millis(200));
     }
 }
 
-fn print_grid(grid: [[Cell; 31]; 31]) {
+fn print_grid(grid: [[Cell; 31]; 31], point: i32) {
     let mut stdout = stdout();
     for row in grid.iter() {
         for &cell in row.iter() {
@@ -71,5 +92,6 @@ fn print_grid(grid: [[Cell; 31]; 31]) {
         }
         println!();
     }
+    print!("\r{point}");
     stdout.flush().unwrap();
 }
