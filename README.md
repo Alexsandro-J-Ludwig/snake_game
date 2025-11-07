@@ -23,9 +23,10 @@ Este projeto foi criado com o objetivo de desenvolver minha lógica de programa�
 2. **Criando a cobrinha**: Para criar a cobrinha, foi feito usando um vetor de tamanho variavem que era renderizado dentro da array fixa da grid por um enum de ```Cell::Snake``` junto a um random da posição da fruta na grid.
 ![Primeira versão da cobrinha](./assets/images/snake_no_moves.gif)
 
-3. **Adicionanando movimento**: Adição do movimento da cobrinha pela grid a partir de um input do teclado padrão de uma biblioteca do Rust chamada io.
+3. **Adicionanando movimento**: Adição do movimento da cobrinha pela grid a partir de um input do teclado padrão de uma biblioteca do Rust chamada io. (não gravei essa parte)
 
 4. **Aplicando movimento ao vivo**: Considero a parte mais díficil, retirar o rastro da cobrinha e capturar o movimento ao vivo das setas de flecha do teclado.
+![Versão final](./assets/images/snake.gif)
 
 ## Como aplicar esse projeto
 Se deseja apenas ver o projeto funcionando, apenas basta baixar o executavel do projeto [Snake Game](./target//release//snake_game.exe).
