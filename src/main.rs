@@ -1,11 +1,20 @@
+mod collision;
 mod keyboard;
-use crate::keyboard::{Keyboard::keyboard, Keyboard::Moves};
+mod print;
+mod render;
 
-use std::{io::{Write, stdout}, thread::sleep, time::Duration};
+use crate::{
+    collision::Collision::{CollisionType, collision_check},
+    keyboard::{Keyboard::Moves, Keyboard::keyboard},
+    print::Print::print_grid,
+    render::Render::render,
+};
+
 use rand::Rng;
+use std::{thread::sleep, time::Duration};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-enum Cell {
+pub enum Cell {
     Empty,
     Snake,
     Fruit,
@@ -13,85 +22,58 @@ enum Cell {
 
 fn main() {
     let mut grid: [[Cell; 31]; 31] = [[Cell::Empty; 31]; 31];
-    let mut snake:  Vec<(i32, i32)> = vec![(14, 14), (14, 15), (14, 16)];
+    let mut snake: Vec<(i32, i32)> = vec![(14, 14), (14, 15), (14, 16)];
     let mut x: usize = rand::rng().random_range(0..30);
-    let mut y: usize = rand:: rng().random_range(0..30);
+    let mut y: usize = rand::rng().random_range(0..27);
 
-    let mut pos_x: isize = 14;
-    let mut pos_y: isize = 14;
     let mut px = 0;
     let mut py = 0;
 
-    let mut point = 0;
+    let mut points = 0;
 
     loop {
-        for row in &mut grid {
-            for cell in row.iter_mut() {
-                *cell = Cell::Empty;
-            }
-        }
-        for &(x, y) in &snake {
-            if x >= 0 && y >= 0 && x < 31 && y < 31 {
-                grid[x as usize][y as usize] = Cell::Snake;
-            }
-        }
+        grid = render(grid, snake.clone());
 
-        let position:Moves = keyboard();
+        //Catch the keyboard arrows keycaps
+        let position: Moves = keyboard();
 
-        match position {
-            Moves::Up => {px = -1; py = 0},
-            Moves::Down => {px = 1; py = 0},
-            Moves::Left => {px = 0; py = -1},
-            Moves::Right => {px = 0; py = 1},
+        match keyboard() {
+            Moves::Up => (px, py) = (-1, 0),
+            Moves::Down => (px, py) = (1, 0),
+            Moves::Left => (px, py) = (0, -1),
+            Moves::Right => (px, py) = (0, 1),
             Moves::None => {}
         }
 
+        //Add a new head in snake body
         let new_head = (snake[0].0 + px, snake[0].1 + py);
-        snake.insert(0, new_head);
 
-        snake.pop();
-
-        if grid[x][y] == Cell::Snake {
-            snake.push(*snake.last().unwrap());
-            x = rand::rng().random_range(0..30);
-            y = rand::rng().random_range(0..30);
-            point += 1;
+        //Verify if snake colisions in game
+        match collision_check(snake.clone(), new_head, px, grid, x, y) {
+            CollisionType::Wall => {
+                println!("💥 Você bateu na parede - Game Over!");
+                println!("🏆 Pontuação final: {points}");
+                break;
+            }
+            CollisionType::SelfCollision => {
+                println!("🐍 Você se mordeu - Game Over!");
+                println!("🏆 Pontuação final: {points}");
+                break;
+            }
+            CollisionType::FruitCollision => {
+                snake.push(*snake.last().unwrap());
+                x = rand::rng().random_range(0..30);
+                y = rand::rng().random_range(0..30);
+                points += 1;
+            }
+            CollisionType::None => {
+                snake.insert(0, new_head);
+                snake.pop();
+            }
         }
 
         grid[x][y] = Cell::Fruit;
-
-        print_grid(grid, point);
-
-        if pos_x < 0 || pos_y < 0 || pos_x >= 31 || pos_y >= 31 {
-            println!("Game Over");
-            break;
-        }
-
-        if grid[(snake[0].0 + 1) as usize][(snake[0].1) as usize] == Cell::Snake {
-            println!("Game Over");
-            break;
-        }
-
-        pos_x += px as isize;
-        pos_y += py as isize;
-
-        sleep(Duration::from_millis(200));
+        print_grid(grid, points);
+        sleep(Duration::from_millis(20));
     }
-}
-
-fn print_grid(grid: [[Cell; 31]; 31], point: i32) {
-    let mut stdout = stdout();
-    for row in grid.iter() {
-        for &cell in row.iter() {
-            let symbol = match cell {
-                Cell::Empty => ".",
-                Cell::Snake => "O",
-                Cell::Fruit => "*",
-            };
-            print!("{}", symbol);
-        }
-        println!();
-    }
-    print!("\r{point}");
-    stdout.flush().unwrap();
 }
